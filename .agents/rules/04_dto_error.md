@@ -1,0 +1,137 @@
+# TookTook iOS — DTO / Model 분리 · 에러 처리 규칙
+
+---
+
+## 규칙 5-1. DTO는 `Decodable`만 채택한다
+
+> **이유**: DTO는 서버에서 데이터를 받는 역할만 한다. `Encodable`까지 채택하면 DTO를 요청에도 쓸 것 같은 오해를 준다.
+
+```swift
+// ❌
+public struct PostData: Codable { ... }
+
+// ✅
+public struct PostData: Decodable, Equatable { ... }
+```
+
+---
+
+## 규칙 5-2. 서버 필드명과 앱 필드명이 다를 때 `CodingKeys`로 매핑한다
+
+> **이유**: snake_case 서버 필드를 그대로 쓰면 Swift 네이밍 컨벤션(camelCase)이 깨진다. CodingKeys로 명시적으로 매핑하면 서버 스펙 변경 시 변경 지점이 한 곳으로 모인다.
+
+```swift
+// ✅
+public struct ProfileMemberData: Decodable, Equatable {
+    public var memberId: Int?
+    public var nickname: String
+    public var profileImageURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case memberId
+        case nickname
+        case profileImage    // 서버 원본 키: "profileImage"
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        memberId = try? container.decodeIfPresent(Int.self, forKey: .memberId)
+        nickname = (try? container.decode(String.self, forKey: .nickname)) ?? ""
+        let image = (try? container.decodeIfPresent(ImageData.self, forKey: .profileImage)) ?? .init()
+        profileImageURL = image.thumbnail.isEmpty ? nil : image.thumbnail
+    }
+}
+```
+
+---
+
+## 규칙 5-3. DTO → Feature Model 변환 책임은 Domain Service가 가진다
+
+> **이유**: Feature가 DTO를 직접 알면 서버 응답 형식이 바뀔 때 Feature까지 수정해야 한다.
+
+```
+위치별 책임:
+- DTO 정의     → Core/CoreDTO/Interface 또는 Domain/XxxService/Interface/DTO
+- DTO → Model  → Domain/XxxService/Sources (Service 구현체)
+- Model → View → Feature Reducer (core 함수)
+```
+
+---
+
+## 규칙 6-1. 모든 네트워크 에러는 `NetworkError`로 표현한다
+
+> **이유**: 앱 전체에서 에러 타입이 통일되어야 에러 UI(다이얼로그·토스트)를 일관되게 적용할 수 있다.
+
+```swift
+public enum NetworkError: Error, Equatable {
+    case requestError(_ description: String)  // 클라이언트 잘못된 요청
+    case apiError(_ errorResponse: ErrorResponse)  // 서버 4xx
+    case decodingError          // JSON 파싱 실패
+    case serverError            // 서버 5xx
+    case networkConnectionError // 연결 불가
+    case timeOutError           // 타임아웃
+    case authorizationError     // 401
+    case tokenRefreshFailed     // 토큰 갱신 실패 → 강제 로그아웃
+    case forceUpdateNeeded      // 강제 업데이트
+    case cancelled              // 요청 취소
+}
+```
+
+---
+
+## 규칙 6-2. `tokenRefreshFailed`는 반드시 `AppCore`까지 전파한다
+
+> **이유**: 토큰이 만료되면 모든 API 요청을 취소하고 로그인 화면으로 이동해야 한다. 이 처리가 AppCore에 중앙화되어 있으므로, 어느 Feature에서 발생하더라도 AppCore까지 전파해야 한다.
+
+```swift
+// AppCore의 tokenRefreshFailed 처리
+case .tokenRefreshFailed:
+    return .run { send in
+        await apiClient.cancelAllRequests()
+        keychainClient.delete(key: KeychainClientKeys.accessToken.rawValue)
+        keychainClient.delete(key: KeychainClientKeys.refreshToken.rawValue)
+        await send(.moveToLogin)
+    }
+```
+
+---
+
+## 규칙 6-3. `catch` 블록에서 에러를 무시하지 않는다
+
+> **이유**: 에러를 무시하면 사용자는 왜 동작이 안 되는지 알 수 없고, 개발자도 원인을 찾기 어렵다.
+
+```swift
+// ❌ 에러 무시
+return .run { send in
+    let result = try? await service.fetch()
+    await send(.dataLoaded(result ?? []))
+}
+
+// ✅ 명시적 에러 처리
+return .run { send in
+    do {
+        let result = try await service.fetch(apiClient)
+        await send(.dataLoaded(result))
+    } catch let error as NetworkError {
+        await send(.fetchFailed(error))
+    } catch {
+        await send(.fetchFailed(.unknownError))
+    }
+}
+```
+
+---
+
+## 규칙 6-4. 에러 메시지를 Feature에서 Hardcode하지 않는다
+
+> **이유**: `NetworkError`에 `title`, `errorMessage` 프로퍼티가 이미 정의되어 있다.
+
+```swift
+// ❌
+await send(.showAlert(message: "서비스에 문제가 발생했습니다."))
+
+// ✅ NetworkError의 errorMessage 활용
+case .fetchFailed(let error):
+    state.errorMessage = error.errorMessage
+    return .none
+```
