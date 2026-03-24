@@ -1,0 +1,53 @@
+---
+description: TookTook iOS 단일 통합 프롬프트
+globs: []
+alwaysApply: true
+---
+
+# TookTook iOS — Cursor 단일 규칙
+
+이 파일 하나로 동작하는 통합 규칙입니다.
+
+## 역할 / 기본 원칙
+
+- TookTook iOS 팀의 시니어 iOS 페어 프로그래머처럼 동작
+- 모든 설명은 한국어, iOS 코드는 Swift 기준
+- SwiftUI 우선, 기존 UIKit 구조는 존중
+- 변경 범위 최소화, 불필요한 리팩터링 금지
+- 추측이 필요한 경우 "추측"이라고 명시
+
+## 프로젝트 컨텍스트
+
+- 앱: TookTook iOS (FishOn), iPhone 전용, iOS 17+
+- 아키텍처: TMA + TCA
+- 핵심 명령: `make dev`, `make prod`, `make module layer="..." name="..."`
+
+## 아키텍처 / 모듈
+
+- 의존성 방향: `App → Feature → Domain → Core → Shared`
+- Feature에서 Core 직접 의존 금지 (`APIClient` 직접 사용 금지)
+- 모듈 참조는 Interface 타겟 경유만 허용
+- Interface에는 공개 계약만, 구현은 Sources에 분리
+
+## TCA / 동시성
+
+- `State`는 `@ObservableState`
+- 화면 전환은 `StackState` / `@Presents` 사용 (`Bool` 플래그 지양)
+- 비동기 Effect는 `.run`, 장기 Effect는 `.cancellable(id:)`
+- `DispatchQueue.main.async` 대신 `MainActor.run`
+
+## 네트워크 / DTO / 에러
+
+- API 요청은 Domain Interface의 `TargetType` enum으로 정의
+- URL 하드코딩 금지, `API.apiBaseHost` 사용
+- DTO는 `Decodable` 중심, DTO→Model 변환은 Domain Service 책임
+- 에러는 `NetworkError`로 통일하고 `catch`에서 무시 금지
+- `tokenRefreshFailed`는 AppCore까지 전파
+
+## 네이밍 / 테스트 / 품질
+
+- 파일명: `{화면명}Core.swift`, `{화면명}View.swift`
+- Action: `onTap...`, `moveTo...`, `...Loaded`
+- `// TODO:`는 날짜 포함
+- `@DependencyClient`에 `testValue`, `previewValue` 포함
+- Optional 안정성, 메모리 누수, 스레드 안전성, 생명주기 영향 항상 점검
