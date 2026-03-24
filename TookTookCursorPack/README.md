@@ -1,17 +1,23 @@
 # TookTook Cursor Pack
 
 Cursor 규칙만 한 번에 옮겨 재사용하기 위한 번들입니다.
-외부 폴더 참조 없이 `cursor/rules` 단일 파일 기반으로 동작합니다.
 
 ## 포함 구조
 
-- `cursor/rules/00_unified_prompt_always.mdc`: 단일 통합 규칙
-- `cursor/rules/README.md`: 사용 가이드
+- `cursor/rules`: Cursor `.mdc` 규칙 (통합 + 상세)
 
 ## 경량 동작 방식
 
-- Always 적용: `cursor/rules/00_unified_prompt_always.mdc` 1개
-- 추가 참조 파일 없이 단일 파일로 처리
+- Always 적용: `00 + 01 + 02`
+- 상세 규칙: `11~16` Auto Attached
+- 토큰 절약이 필요하면 `01/02`를 수동으로 내릴 수 있음
+
+## 규칙 파일 역할
+
+- `00_unified_prompt_always.mdc`: 공통 통합 규칙
+- `01_context_always.mdc`: 프로젝트 컨텍스트
+- `02_principles_always.mdc`: 행동 원칙/리뷰 체크리스트
+- `11~16`: 아키텍처, TCA, 네트워크, DTO/에러, 네이밍, 테스트 상세 규칙
 
 ## 빠른 설치
 
