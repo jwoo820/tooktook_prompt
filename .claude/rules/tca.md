@@ -1,18 +1,8 @@
----
-description: TCA/SwiftUI 상태관리 및 Effect 규칙
-globs:
-  - "**/*Core.swift"
-  - "**/*View.swift"
-  - "**/*Feature*.swift"
-  - "**/*.swift"
-alwaysApply: false
----
-
-# TookTook iOS — TCA / SwiftUI 상태관리 규칙
+# TCA / SwiftUI 상태관리 규칙
 
 ---
 
-## 규칙 2-1. Reducer의 기본 구조를 통일한다
+## 1. Reducer의 기본 구조를 통일한다
 
 > **이유**: 구조가 통일되어야 어느 파일을 열어도 빠르게 파악할 수 있다.
 
@@ -60,7 +50,7 @@ public struct HomeCore {
 
 ---
 
-## 규칙 2-2. `State`는 반드시 `@ObservableState`를 채택한다
+## 2. `State`는 반드시 `@ObservableState`를 채택한다
 
 > **이유**: `@ObservableState` 없이는 SwiftUI가 State 변화를 감지하지 못해 화면이 갱신되지 않는다.
 
@@ -75,7 +65,7 @@ public struct State { var count: Int = 0 }
 
 ---
 
-## 규칙 2-3. 화면 전환은 `StackState` 또는 `@Presents`만 사용한다
+## 3. 화면 전환은 `StackState` 또는 `@Presents`만 사용한다
 
 > **이유**: `Bool` 플래그로 화면을 관리하면 상태 수가 폭발적으로 늘어나고, 전환 타이밍 버그가 생기기 쉽다.
 
@@ -103,14 +93,20 @@ extension HomeCore {
 }
 ```
 
+**선택 기준**
+
+| 상황 | 선택 |
+|------|------|
+| 화면 위로 올라오는 모달·시트·풀스크린 커버 | `@Presents var xxx: XxxCore.State?` |
+| 뒤로가기가 가능한 NavigationStack 푸시 | `StackState<XxxPath.State>` + `@Reducer enum XxxPath` |
+
 ---
 
-## 규칙 2-4. 장기 실행 Effect에는 반드시 `CancelID`를 사용한다
+## 4. 장기 실행 Effect에는 반드시 `CancelID`를 사용한다
 
 > **이유**: `CancelID` 없이 스트림을 구독하면 화면이 사라진 뒤에도 Effect가 살아있어 메모리 누수와 예상치 못한 Action 발행이 생긴다.
 
 ```swift
-// ✅ CancelID 정의 후 사용
 enum CancelID {
     case toastStream
     case errorStream
@@ -136,9 +132,18 @@ case .onLoad:
 
 ---
 
-## 규칙 2-5. switch 케이스가 많아지면 `MARK`로 섹션을 분리한다
+## 5. Effect 사용 기준
 
-> **이유**: Reducer가 커지면 어떤 케이스가 어느 서브 Reducer에서 왔는지 파악하기 어렵다.
+| 상황 | 코드 |
+|------|------|
+| 상태만 바꿀 때 | `return .none` |
+| 비동기 작업 | `return .run { send in ... }` |
+| 다른 Action으로만 전달 | `return .send(.xxx)` |
+| 장기 실행 스트림 | `.run { }.cancellable(id: CancelID.xxx)` |
+
+---
+
+## 6. switch 케이스가 많아지면 `MARK`로 섹션을 분리한다
 
 ```swift
 private func core(_ state: inout State, _ action: Action) -> EffectOf<Self> {
@@ -164,9 +169,11 @@ private func core(_ state: inout State, _ action: Action) -> EffectOf<Self> {
 }
 ```
 
+> `core(_:_:)` 함수가 80줄 초과 시 반드시 `// MARK: - 섹션명`으로 분리.
+
 ---
 
-## 규칙 3-1. UIKit은 Reducer 내부에서 직접 사용하지 않는다
+## 7. UIKit은 Reducer 내부에서 직접 사용하지 않는다
 
 > **이유**: Reducer는 순수 함수에 가까워야 테스트가 가능하다.
 
@@ -188,7 +195,7 @@ case .openStore:
 
 ---
 
-## 규칙 3-2. `DispatchQueue.main.async` 대신 `MainActor.run`을 사용한다
+## 8. `DispatchQueue.main.async` 대신 `MainActor.run`을 사용한다
 
 > **이유**: Swift Concurrency 환경에서 `DispatchQueue`는 actor 격리를 모르기 때문에 데이터 레이스가 발생할 수 있다.
 

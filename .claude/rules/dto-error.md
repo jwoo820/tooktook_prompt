@@ -1,18 +1,8 @@
----
-description: DTO/Model 분리 및 NetworkError 처리 규칙
-globs:
-  - "**/*DTO*.swift"
-  - "**/*Data.swift"
-  - "**/*Service*.swift"
-  - "**/*.swift"
-alwaysApply: false
----
-
-# TookTook iOS — DTO / Model 분리 · 에러 처리 규칙
+# DTO / Model 분리 · 에러 처리 규칙
 
 ---
 
-## 규칙 5-1. DTO는 `Decodable`만 채택한다
+## 1. DTO는 `Decodable`만 채택한다
 
 > **이유**: DTO는 서버에서 데이터를 받는 역할만 한다. `Encodable`까지 채택하면 DTO를 요청에도 쓸 것 같은 오해를 준다.
 
@@ -26,12 +16,11 @@ public struct PostData: Decodable, Equatable { ... }
 
 ---
 
-## 규칙 5-2. 서버 필드명과 앱 필드명이 다를 때 `CodingKeys`로 매핑한다
+## 2. 서버 필드명과 앱 필드명이 다를 때 `CodingKeys`로 매핑한다
 
 > **이유**: snake_case 서버 필드를 그대로 쓰면 Swift 네이밍 컨벤션(camelCase)이 깨진다. CodingKeys로 명시적으로 매핑하면 서버 스펙 변경 시 변경 지점이 한 곳으로 모인다.
 
 ```swift
-// ✅
 public struct ProfileMemberData: Decodable, Equatable {
     public var memberId: Int?
     public var nickname: String
@@ -55,7 +44,7 @@ public struct ProfileMemberData: Decodable, Equatable {
 
 ---
 
-## 규칙 5-3. DTO → Feature Model 변환 책임은 Domain Service가 가진다
+## 3. DTO → Feature Model 변환 책임은 Domain Service가 가진다
 
 > **이유**: Feature가 DTO를 직접 알면 서버 응답 형식이 바뀔 때 Feature까지 수정해야 한다.
 
@@ -68,7 +57,7 @@ public struct ProfileMemberData: Decodable, Equatable {
 
 ---
 
-## 규칙 6-1. 모든 네트워크 에러는 `NetworkError`로 표현한다
+## 4. 모든 네트워크 에러는 `NetworkError`로 표현한다
 
 > **이유**: 앱 전체에서 에러 타입이 통일되어야 에러 UI(다이얼로그·토스트)를 일관되게 적용할 수 있다.
 
@@ -89,7 +78,7 @@ public enum NetworkError: Error, Equatable {
 
 ---
 
-## 규칙 6-2. `tokenRefreshFailed`는 반드시 `AppCore`까지 전파한다
+## 5. `tokenRefreshFailed`는 반드시 `AppCore`까지 전파한다
 
 > **이유**: 토큰이 만료되면 모든 API 요청을 취소하고 로그인 화면으로 이동해야 한다. 이 처리가 AppCore에 중앙화되어 있으므로, 어느 Feature에서 발생하더라도 AppCore까지 전파해야 한다.
 
@@ -106,7 +95,7 @@ case .tokenRefreshFailed:
 
 ---
 
-## 규칙 6-3. `catch` 블록에서 에러를 무시하지 않는다
+## 6. `catch` 블록에서 에러를 무시하지 않는다
 
 > **이유**: 에러를 무시하면 사용자는 왜 동작이 안 되는지 알 수 없고, 개발자도 원인을 찾기 어렵다.
 
@@ -132,7 +121,7 @@ return .run { send in
 
 ---
 
-## 규칙 6-4. 에러 메시지를 Feature에서 Hardcode하지 않는다
+## 7. 에러 메시지를 Feature에서 Hardcode하지 않는다
 
 > **이유**: `NetworkError`에 `title`, `errorMessage` 프로퍼티가 이미 정의되어 있다.
 

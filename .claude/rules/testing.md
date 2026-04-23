@@ -1,18 +1,8 @@
----
-description: 테스트 규칙 및 금지 패턴
-globs:
-  - "**/*Tests.swift"
-  - "**/Tests/**/*.swift"
-  - "**/Testing/**/*.swift"
-  - "**/*.swift"
-alwaysApply: false
----
-
-# TookTook iOS — 테스트 규칙 · 금지 패턴 · 코드 예시
+# 테스트 규칙 · 금지 패턴 · 코드 예시
 
 ---
 
-## 규칙 9-1. `@DependencyClient`에는 반드시 `testValue`와 `previewValue`를 정의한다
+## 1. `@DependencyClient`에는 반드시 `testValue`와 `previewValue`를 정의한다
 
 > **이유**: `testValue`가 없으면 TCA TestStore에서 런타임 에러가 발생한다. `previewValue`가 없으면 SwiftUI Preview가 동작하지 않는다.
 
@@ -31,7 +21,7 @@ extension AuthService: TestDependencyKey {
 
 ---
 
-## 규칙 9-2. TCA 테스트는 `TestStore`를 사용한다
+## 2. TCA 테스트는 `TestStore`를 사용한다
 
 > **이유**: `TestStore`는 Action 발행 순서·State 변화·Effect 완료를 순차적으로 검증해 준다.
 
@@ -55,7 +45,7 @@ func 로그인_성공_시_isLoading이_false가_된다() async {
 
 ---
 
-## 금지 패턴 총정리
+## 3. 금지 패턴 총정리
 
 | 금지 패턴 | 올바른 대안 | 이유 |
 |----------|------------|------|
@@ -72,7 +62,7 @@ func 로그인_성공_시_isLoading이_false가_된다() async {
 
 ---
 
-## 좋은 코드 / 나쁜 코드 예시
+## 4. 좋은 코드 / 나쁜 코드 예시
 
 ### Case 1. Reducer Action 처리
 

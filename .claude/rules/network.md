@@ -1,18 +1,8 @@
----
-description: 네트워크 레이어 규칙 (TargetType, APIClient 사용 경계)
-globs:
-  - "**/*Service*.swift"
-  - "**/*Client*.swift"
-  - "**/*APIRequest*.swift"
-  - "**/*.swift"
-alwaysApply: false
----
-
-# TookTook iOS — 네트워크 레이어 규칙
+# 네트워크 레이어 규칙
 
 ---
 
-## 규칙 4-1. API 요청은 `TargetType` enum으로 Domain Interface에 정의한다
+## 1. API 요청은 `TargetType` enum으로 Domain Interface에 정의한다
 
 > **이유**: API 요청을 enum 케이스로 모델링하면 실수로 잘못된 URL·메서드·파라미터를 넘길 수 없다. switch 문 exhaustiveness가 컴파일러 수준에서 보장된다.
 
@@ -62,7 +52,7 @@ extension AuthAPIRequest: TargetType {
 
 ---
 
-## 규칙 4-2. APIClient는 Feature에서 직접 사용하지 않는다
+## 2. APIClient는 Feature에서 직접 사용하지 않는다
 
 > **이유**: Feature가 APIClient를 직접 알면 Domain 레이어의 의미가 없어진다. Service가 API 세부사항을 캡슐화해야 Feature는 API 스펙 변경에 영향받지 않는다.
 
@@ -78,7 +68,7 @@ try await authService.login(apiClient, keychainClient, request)
 
 ---
 
-## 규칙 4-3. 서버 URL은 반드시 `API.apiBaseHost`를 사용한다
+## 3. 서버 URL은 반드시 `API.apiBaseHost`를 사용한다
 
 > **이유**: 환경별(`#if DEV`) 서버 주소 분기가 `API.apiBaseHost` 안에 캡슐화되어 있다. 하드코딩하면 배포 시 실수로 dev 서버를 사용하는 사고가 생긴다.
 
@@ -103,7 +93,7 @@ public static var apiBaseHost: String {
 
 ---
 
-## 규칙 4-4. API 응답 디코딩은 `apiClient.apiRequest(request:as:)` 제네릭 메서드를 사용한다
+## 4. API 응답 디코딩은 `apiClient.apiRequest(request:as:)` 제네릭 메서드를 사용한다
 
 > **이유**: 모든 API 응답이 `APIResponse<T>` 래퍼 구조를 가진다. 직접 `JSONDecoder`를 쓰면 이 래퍼를 매번 수동으로 벗겨야 해서 실수 가능성이 높다.
 
